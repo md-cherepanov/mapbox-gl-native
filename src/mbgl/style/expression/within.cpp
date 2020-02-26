@@ -19,9 +19,11 @@ class PolygonFeature : public GeometryTileFeature {
 public:
     const Feature& feature;
     mutable optional<GeometryCollection> geometry;
+    FeatureType type;
 
     PolygonFeature(const Feature& feature_, const CanonicalTileID& canonical) : feature(feature_) {
-        if (getType() == FeatureType::Polygon) {
+        type = apply_visitor(ToFeatureType(), feature.geometry);
+        if (type == FeatureType::Polygon) {
             geometry = convertGeometry(feature.geometry, canonical);
             assert(geometry);
             geometry = fixupPolygons(*geometry);
@@ -30,7 +32,7 @@ public:
         }
     }
 
-    FeatureType getType() const override { return apply_visitor(ToFeatureType(), feature.geometry); }
+    FeatureType getType() const override { return type; }
     const PropertyMap& getProperties() const override { return feature.properties; }
     FeatureIdentifier getID() const override { return feature.id; }
     optional<mbgl::Value> getValue(const std::string& /*key*/) const override { return optional<mbgl::Value>(); }
@@ -208,7 +210,7 @@ ParseResult Within::parse(const Convertible& value, ParsingContext& ctx) {
                 return ParseResult();
             },
             [&ctx](const auto&) {
-                ctx.error("within' expression requires valid geojson source that contains polygon geometry type.");
+                ctx.error("'within' expression requires valid geojson source that contains polygon geometry type.");
                 return ParseResult();
             });
     }
