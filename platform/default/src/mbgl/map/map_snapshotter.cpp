@@ -11,6 +11,8 @@
 #include <mbgl/storage/resource_options.hpp>
 #include <mbgl/style/style.hpp>
 #include <mbgl/util/event.hpp>
+#include <mbgl/util/exception.hpp>
+#include <mbgl/util/logging.hpp>
 #include <mbgl/util/thread.hpp>
 
 namespace mbgl {
@@ -156,8 +158,32 @@ public:
         map.jumpTo(map.cameraForLatLngs(latLngs, insets));
     }
 
-    void snapshot(ActorRef<MapSnapshotter::Callback> callback) {
-        map.renderStill([this, callback = std::move(callback)](std::exception_ptr error) {
+    void snapshot(MapSnapshotter::Callback callback) {
+        if (!callback) {
+            Log::Error(Event::General, "MapSnapshotter::Callback is not set");
+            return;
+        }
+
+        if (renderStillCallback) {
+            callback(std::make_exception_ptr(util::MisuseException("MapSnapshotter is currently rendering an image")),
+                     PremultipliedImage(),
+                     {},
+                     {},
+                     {});
+        }
+
+        renderStillCallback = std::make_unique<Actor<MapSnapshotter::Callback>>(
+            *Scheduler::GetCurrent(),
+            [this, cb = std::move(callback)](std::exception_ptr ptr,
+                                             PremultipliedImage image,
+                                             Attributions attributions,
+                                             PointForFn pfn,
+                                             LatLngForFn latLonFn) {
+                cb(ptr, std::move(image), std::move(attributions), std::move(pfn), std::move(latLonFn));
+                renderStillCallback.reset();
+            });
+
+        map.renderStill([this, actorRef = renderStillCallback->self()](std::exception_ptr error) {
             // Create lambda that captures the current transform state
             // and can be used to translate for geographic to screen
             // coordinates
@@ -191,7 +217,7 @@ public:
             }
 
             // Invoke callback
-            callback.invoke(&MapSnapshotter::Callback::operator(),
+            actorRef.invoke(&MapSnapshotter::Callback::operator(),
                             error,
                             error ? PremultipliedImage() : frontend.readStillImage(),
                             std::move(attributions),
@@ -204,6 +230,7 @@ public:
     SnapshotterRendererFrontend& getRenderer() { return frontend; }
 
 private:
+    std::unique_ptr<Actor<MapSnapshotter::Callback>> renderStillCallback;
     SnapshotterRendererFrontend frontend;
     Map map;
 };
@@ -215,12 +242,17 @@ MapSnapshotter::MapSnapshotter(std::pair<bool, std::string> style,
                                optional<LatLngBounds> region,
                                optional<std::string> localFontFamily,
                                const ResourceOptions& resourceOptions)
-    : impl(std::make_unique<MapSnapshotter::Impl>(
-          std::move(style), size, pixelRatio, std::move(cameraOptions), std::move(region), localFontFamily, resourceOptions.clone())) {}
+    : impl(std::make_unique<MapSnapshotter::Impl>(std::move(style),
+                                                  size,
+                                                  pixelRatio,
+                                                  std::move(cameraOptions),
+                                                  std::move(region),
+                                                  localFontFamily,
+                                                  resourceOptions.clone())) {}
 
 MapSnapshotter::~MapSnapshotter() = default;
 
-void MapSnapshotter::snapshot(ActorRef<MapSnapshotter::Callback> callback) {
+void MapSnapshotter::snapshot(MapSnapshotter::Callback callback) {
     impl->snapshot(std::move(callback));
 }
 
