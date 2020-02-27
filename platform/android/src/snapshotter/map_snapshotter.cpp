@@ -71,10 +71,11 @@ MapSnapshotter::~MapSnapshotter() = default;
 void MapSnapshotter::start(JNIEnv& env) {
     MBGL_VERIFY_THREAD(tid);
     activateFilesource(env);
-
-    snapshotCallback = std::make_unique<Actor<mbgl::MapSnapshotter::Callback>>(
-            *Scheduler::GetCurrent(),
-            [this](std::exception_ptr err, PremultipliedImage image, std::vector<std::string> attributions, mbgl::MapSnapshotter::PointForFn pointForFn, mbgl::MapSnapshotter::LatLngForFn latLngForFn) {
+    snapshotter->snapshot([this](std::exception_ptr err,
+                                 PremultipliedImage image,
+                                 std::vector<std::string> attributions,
+                                 mbgl::MapSnapshotter::PointForFn pointForFn,
+                                 mbgl::MapSnapshotter::LatLngForFn latLngForFn) {
         MBGL_VERIFY_THREAD(tid);
         android::UniqueEnv _env = android::AttachEnv();
         static auto& javaClass = jni::Class<MapSnapshotter>::Singleton(*_env);
@@ -100,13 +101,11 @@ void MapSnapshotter::start(JNIEnv& env) {
 
         deactivateFilesource(*_env);
     });
-
-    snapshotter->snapshot(snapshotCallback->self());
 }
 
 void MapSnapshotter::cancel(JNIEnv& env) {
     MBGL_VERIFY_THREAD(tid);
-    snapshotCallback.reset();
+    snapshotter->cancel();
     deactivateFilesource(env);
 }
 
