@@ -587,18 +587,21 @@ void RenderSymbolLayer::prepare(const LayerPrepareParameters& params) {
             auto featureIndex = static_cast<const GeometryTile*>(tile)->getFeatureIndex();
 
             if (bucket->sortKeyRanges.empty()) {
-                placementData.push_back(
-                    {*bucket, renderTile, featureIndex, firstInBucket, 0.0f, 0, bucket->symbolInstances.size()});
+                placementData.push_back({*bucket, renderTile, featureIndex, firstInBucket, nullopt});
             } else {
-                for (const SortKeyRange& sortKeyRange : bucket->sortKeyRanges) {
-                    LayerPlacementData layerData{*bucket,
-                                                 renderTile,
-                                                 featureIndex,
-                                                 firstInBucket,
-                                                 sortKeyRange.sortKey,
-                                                 sortKeyRange.symbolInstanceStart,
-                                                 sortKeyRange.symbolInstanceEnd};
-                    auto sortPosition = std::upper_bound(placementData.cbegin(), placementData.cend(), layerData);
+                const auto& sortKeyRanges = bucket->sortKeyRanges;
+                for (std::size_t index = 0; index < sortKeyRanges.size(); ++index) {
+                    LayerPlacementData layerData{*bucket, renderTile, featureIndex, firstInBucket, index};
+                    auto sortPosition = std::upper_bound(placementData.cbegin(),
+                                                         placementData.cend(),
+                                                         layerData,
+                                                         [&sortKeyRanges](const auto& lhs, const auto& rhs) {
+                                                             assert(lhs.sortKeyRangeIndex && rhs.sortKeyRangeIndex);
+                                                             assert(*lhs.sortKeyRangeIndex < sortKeyRanges.size());
+                                                             assert(*rhs.sortKeyRangeIndex < sortKeyRanges.size());
+                                                             return sortKeyRanges[*lhs.sortKeyRangeIndex].sortKey <
+                                                                    sortKeyRanges[*rhs.sortKeyRangeIndex].sortKey;
+                                                         });
                     placementData.insert(sortPosition, std::move(layerData));
 
                     firstInBucket = false;

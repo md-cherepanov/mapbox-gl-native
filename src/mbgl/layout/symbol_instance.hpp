@@ -125,9 +125,11 @@ public:
 
 class SortKeyRange {
 public:
-    float sortKey;
-    size_t symbolInstanceStart;
-    size_t symbolInstanceEnd;
+    float sortKey = 0.0f;
+    size_t symbolInstanceStart = 0u;
+    size_t symbolInstanceEnd = 0u;
 };
+
+using SymbolInstanceReferences = std::vector<std::reference_wrapper<const SymbolInstance>>;
 
 } // namespace mbgl

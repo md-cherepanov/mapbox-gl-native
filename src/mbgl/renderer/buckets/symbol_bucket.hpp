@@ -97,8 +97,11 @@ public:
 
 
     void sortFeatures(const float angle);
-    // The result contains references to the `symbolInstances` items, sorted by viewport Y.
-    std::vector<std::reference_wrapper<const SymbolInstance>> getSortedSymbols(const float angle) const;
+    // Returns references to the `symbolInstances` items, sorted by viewport Y.
+    SymbolInstanceReferences getSortedSymbols(const float angle) const;
+    // Returns references to the `symbolInstances` items, which belong to the `sortKeyRanges[*sortKeyRangeIndex]` range;
+    // returns references to all the symbols if |sortKeyRangeIndex| is not passed.
+    SymbolInstanceReferences getSymbols(optional<std::size_t> sortKeyRangeIndex = nullopt) const;
 
     Immutable<style::SymbolLayoutProperties::PossiblyEvaluated> layout;
     const std::string bucketLeaderID;
@@ -118,7 +121,7 @@ public:
     bool hasUninitializedSymbols : 1;
 
     std::vector<SymbolInstance> symbolInstances;
-    std::vector<SortKeyRange> sortKeyRanges;
+    const std::vector<SortKeyRange> sortKeyRanges;
 
     struct PaintProperties {
         SymbolIconProgram::Binders iconBinders;

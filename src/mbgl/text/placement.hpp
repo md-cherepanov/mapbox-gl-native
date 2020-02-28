@@ -91,9 +91,7 @@ public:
     const RenderTile& tile;
     std::string sourceId;
     std::shared_ptr<FeatureIndex> featureIndex;
-    float sortKey;
-    size_t symbolInstanceStart;
-    size_t symbolInstanceEnd;
+    optional<std::size_t> sortKeyRangeIndex;
 };
 
 class Placement;
