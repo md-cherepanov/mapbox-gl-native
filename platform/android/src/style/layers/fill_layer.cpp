@@ -141,6 +141,10 @@ namespace android {
         toFillLayer(layer).setFillPatternTransition(options);
     }
 
+    jni::Local<jni::Object<>> FillLayer::getFillSortKey(jni::JNIEnv& env) {
+        using namespace mbgl::android::conversion;
+        return std::move(*convert<jni::Local<jni::Object<>>>(env, toFillLayer(layer).getFillSortKey()));
+    }
 
     // FillJavaLayerPeerFactory
 
@@ -172,7 +176,9 @@ namespace android {
 
         // Register the peer
         jni::RegisterNativePeer<FillLayer>(
-            env, javaClass, "nativePtr",
+            env,
+            javaClass,
+            "nativePtr",
             jni::MakePeer<FillLayer, jni::String&, jni::String&>,
             "initialize",
             "finalize",
@@ -192,6 +198,7 @@ namespace android {
             METHOD(&FillLayer::getFillTranslateAnchor, "nativeGetFillTranslateAnchor"),
             METHOD(&FillLayer::getFillPatternTransition, "nativeGetFillPatternTransition"),
             METHOD(&FillLayer::setFillPatternTransition, "nativeSetFillPatternTransition"),
+            METHOD(&FillLayer::getFillSortKey, "nativeGetFillSortKey"),
             METHOD(&FillLayer::getFillPattern, "nativeGetFillPattern"));
     }
 

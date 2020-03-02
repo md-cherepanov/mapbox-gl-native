@@ -74,6 +74,8 @@ public:
 
     jni::Local<jni::Object<jni::ObjectTag>> getLineGradient(jni::JNIEnv&);
 
+    jni::Local<jni::Object<jni::ObjectTag>> getLineSortKey(jni::JNIEnv&);
+
 }; // class LineLayer
 
 class LineJavaLayerPeerFactory final : public JavaLayerPeerFactory,  public mbgl::LineLayerFactory {

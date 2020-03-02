@@ -97,6 +97,11 @@ namespace android {
         toLineLayer(layer).setLineColorTransition(options);
     }
 
+    jni::Local<jni::Object<>> LineLayer::getLineSortKey(jni::JNIEnv& env) {
+        using namespace mbgl::android::conversion;
+        return std::move(*convert<jni::Local<jni::Object<>>>(env, toLineLayer(layer).getLineSortKey()));
+    }
+
     jni::Local<jni::Object<>> LineLayer::getLineTranslate(jni::JNIEnv& env) {
         using namespace mbgl::android::conversion;
         return std::move(*convert<jni::Local<jni::Object<>>>(env, toLineLayer(layer).getLineTranslate()));
@@ -264,7 +269,9 @@ namespace android {
 
         // Register the peer
         jni::RegisterNativePeer<LineLayer>(
-            env, javaClass, "nativePtr",
+            env,
+            javaClass,
+            "nativePtr",
             jni::MakePeer<LineLayer, jni::String&, jni::String&>,
             "initialize",
             "finalize",
@@ -300,6 +307,7 @@ namespace android {
             METHOD(&LineLayer::getLinePatternTransition, "nativeGetLinePatternTransition"),
             METHOD(&LineLayer::setLinePatternTransition, "nativeSetLinePatternTransition"),
             METHOD(&LineLayer::getLinePattern, "nativeGetLinePattern"),
+            METHOD(&LineLayer::getLineSortKey, "nativeGetLineSortKey"),
             METHOD(&LineLayer::getLineGradient, "nativeGetLineGradient"));
     }
 
